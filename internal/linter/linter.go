@@ -43,9 +43,16 @@ func (l *Linter) Lint(filename, sql string) Result {
 		all = append(all, violations...)
 	}
 
+	var filtered []rules.Violation
+	for _, v := range all {
+		if !strings.Contains(lines[v.Line-1], "sqllint:ignore") {
+			filtered = append(filtered, v)
+		}
+	}
+
 	return Result{
-		File:       filename,
-		Violations: all,
+		File: filename,
+		Violations: filtered,
 	}
 }
 
