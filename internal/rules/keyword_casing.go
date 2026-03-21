@@ -45,13 +45,17 @@ func (r KeywordCasing) Check(sql string, lines []string) []Violation {
 					break
 				}
 				absPos := idx + pos
+				endPos := absPos + len(kw)
 
-				// Check word boundaries so "SELECTED" doesn't match "SELECT"
+				if endPos > len(line) {
+					break
+				}
+
 				before := absPos == 0 || !isIdentChar(line[absPos-1])
-				after := absPos+len(kw) >= len(line) || !isIdentChar(line[absPos+len(kw)])
+				after := endPos >= len(line) || !isIdentChar(line[endPos])
 
 				if before && after {
-					actual := line[absPos : absPos+len(kw)]
+					actual := line[absPos:endPos]
 					// Flag if it's neither fully upper nor fully lower
 					if actual != strings.ToUpper(actual) && actual != strings.ToLower(actual) {
 						violations = append(violations, Violation{
