@@ -3,18 +3,21 @@ package linter
 import (
 	"strings"
 
+	"github.com/ryanxiao/go-sqllint/internal/config"
 	"github.com/ryanxiao/go-sqllint/internal/rules"
 )
 
 // Linter holds the set of rules to run and executes them against SQL input.
 type Linter struct {
-	rules []rules.Rule
+	config config.Config
+	rules  []rules.Rule
 }
 
 // New creates a Linter with the default set of rules.
 // This is the Go convention instead of constructors — a plain function named New.
-func New() *Linter {
+func New(cfg config.Config) *Linter {
 	return &Linter{
+		config: cfg,
 		rules: []rules.Rule{
 			rules.SelectStar{},
 			rules.MissingWhere{},
@@ -22,7 +25,6 @@ func New() *Linter {
 			rules.TrailingSemicolon{},
 			rules.LeadingWildcard{},
 			rules.ImplicitJoin{},
-			rules.AliasConsistency{},
 		},
 	}
 }
@@ -45,9 +47,24 @@ func (l *Linter) Lint(filename, sql string) Result {
 
 	var filtered []rules.Violation
 	for _, v := range all {
-		if !strings.Contains(lines[v.Line-1], "sqllint:ignore") {
-			filtered = append(filtered, v)
+		// skip sqllint:ignore lines
+		if strings.Contains(lines[v.Line-1], "sqllint:ignore") {
+			continue
 		}
+
+		// check config for this rule
+		if rc, ok := l.config.Rules[v.RuleID]; ok {
+			if rc.Enabled != nil && !*rc.Enabled {
+				continue
+			}
+			if rc.Severity == "error" {
+				v.Severity = rules.SeverityError
+			} else if rc.Severity == "warning" {
+				v.Severity = rules.SeverityWarning
+			}
+		}
+
+		filtered = append(filtered, v)
 	}
 
 	return Result{

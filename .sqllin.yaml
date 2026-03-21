@@ -1,0 +1,12 @@
+rules:
+  select-star:
+    enabled: true
+    severity: warning
+  missing-where:
+    enabled: true
+    severity: error
+  keyword-casing:
+    enabled: false
+  trailing-semicolon:
+    enabled: true
+    severity: warning
