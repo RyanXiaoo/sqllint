@@ -1,5 +1,11 @@
 rules:
   select-star:
-    enabled: false
-  missing-where:
+    enabled: true
     severity: warning
+  missing-where:
+    enabled: true
+    severity: error
+  keyword-casing:
+    enabled: true
+  trailing-semicolon:
+    enabled: true
