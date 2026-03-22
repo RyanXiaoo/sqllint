@@ -78,3 +78,44 @@ func (r KeywordCasing) Check(sql string, lines []string) []Violation {
 func isIdentChar(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
+
+// Fix replaces all mixed-case SQL keywords with their uppercase form.
+func (r KeywordCasing) Fix(sql string, lines []string) string {
+	result := make([]string, len(lines))
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "--") {
+			result[i] = line
+			continue
+		}
+		fixed := line
+		lower := strings.ToLower(line)
+		for _, kw := range sqlKeywords {
+			kwLower := strings.ToLower(kw)
+			idx := 0
+			for {
+				pos := strings.Index(lower[idx:], kwLower)
+				if pos < 0 {
+					break
+				}
+				absPos := idx + pos
+				endPos := absPos + len(kw)
+				if endPos > len(fixed) {
+					break
+				}
+				before := absPos == 0 || !isIdentChar(fixed[absPos-1])
+				after := endPos >= len(fixed) || !isIdentChar(fixed[endPos])
+				if before && after {
+					actual := fixed[absPos:endPos]
+					if actual != strings.ToUpper(actual) && actual != strings.ToLower(actual) {
+						fixed = fixed[:absPos] + strings.ToUpper(kw) + fixed[endPos:]
+						lower = strings.ToLower(fixed)
+					}
+				}
+				idx = absPos + len(kw)
+			}
+		}
+		result[i] = fixed
+	}
+	return strings.Join(result, "\n")
+}
