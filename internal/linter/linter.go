@@ -103,3 +103,14 @@ func (r Result) HasWarnings() bool {
 	}
 	return false
 }
+
+// Fix runs all rules that implement the Fixer interface and returns the corrected SQL.
+func (l *Linter) Fix(filename, sql string) string {
+	current := sql
+	for _, rule := range l.rules {
+		if f, ok := rule.(rules.Fixer); ok {
+			current = f.Fix(current, strings.Split(current, "\n"))
+		}
+	}
+	return current
+}
