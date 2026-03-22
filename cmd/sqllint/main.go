@@ -20,8 +20,17 @@ type fileResult struct {
 	err    error
 }
 
+func writeAtomic(path, content string) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(content), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
 func main() {
 	format := flag.String("format", "text", "Output format: text, json, or sarif")
+	fix := flag.Bool("fix", false, "Auto-fix violations where possible")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: sqllint [flags] [file ...]\n\n")
 		fmt.Fprintf(os.Stderr, "If no files are given, reads from stdin.\n\n")
@@ -29,6 +38,11 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if *fix && *format != "text" {
+		fmt.Fprintln(os.Stderr, "Error: --fix and --format are mutually exclusive")
+		os.Exit(1)
+	}
 
 	cfg, err := config.Load(".sqllint.yaml")
 	if err != nil {
@@ -45,7 +59,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
 			os.Exit(1)
 		}
-		results = append(results, l.Lint("<stdin>", string(sql)))
+		sqlStr := string(sql)
+		if *fix {
+			fixed := l.Fix("<stdin>", sqlStr)
+			fmt.Print(fixed)
+			return
+		}
+		results = append(results, l.Lint("<stdin>", sqlStr))
 	} else {
 		// Expand all glob patterns into a flat list of paths.
 		var paths []string
@@ -61,35 +81,59 @@ func main() {
 			paths = append(paths, matches...)
 		}
 
-		// Fan-out: lint files concurrently.
-		ch := make(chan fileResult, len(paths))
-		var wg sync.WaitGroup
-		for _, p := range paths {
-			wg.Add(1)
-			go func(p string) {
-				defer wg.Done()
+		if *fix {
+			for _, p := range paths {
 				sql, err := os.ReadFile(p)
 				if err != nil {
-					ch <- fileResult{err: err}
-					return
+					fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+					os.Exit(1)
 				}
-				ch <- fileResult{result: l.Lint(p, string(sql))}
-			}(p)
-		}
-		go func() { wg.Wait(); close(ch) }()
-
-		for fr := range ch {
-			if fr.err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading file: %v\n", fr.err)
-				os.Exit(1)
+				sqlStr := string(sql)
+				fixed := l.Fix(p, sqlStr)
+				if fixed != sqlStr {
+					if err := writeAtomic(p, fixed); err != nil {
+						fmt.Fprintf(os.Stderr, "Error writing %s: %v\n", p, err)
+						os.Exit(1)
+					}
+					fmt.Printf("fixed: %s\n", p)
+					sqlStr = fixed
+				}
+				results = append(results, l.Lint(p, sqlStr))
 			}
-			results = append(results, fr.result)
-		}
+			sort.Slice(results, func(i, j int) bool {
+				return results[i].File < results[j].File
+			})
+		} else {
+			// Fan-out: lint files concurrently.
+			ch := make(chan fileResult, len(paths))
+			var wg sync.WaitGroup
+			for _, p := range paths {
+				wg.Add(1)
+				go func(p string) {
+					defer wg.Done()
+					sql, err := os.ReadFile(p)
+					if err != nil {
+						ch <- fileResult{err: err}
+						return
+					}
+					ch <- fileResult{result: l.Lint(p, string(sql))}
+				}(p)
+			}
+			go func() { wg.Wait(); close(ch) }()
 
-		// Sort for deterministic output.
-		sort.Slice(results, func(i, j int) bool {
-			return results[i].File < results[j].File
-		})
+			for fr := range ch {
+				if fr.err != nil {
+					fmt.Fprintf(os.Stderr, "Error reading file: %v\n", fr.err)
+					os.Exit(1)
+				}
+				results = append(results, fr.result)
+			}
+
+			// Sort for deterministic output.
+			sort.Slice(results, func(i, j int) bool {
+				return results[i].File < results[j].File
+			})
+		}
 	}
 
 	// Output results in the requested format.
