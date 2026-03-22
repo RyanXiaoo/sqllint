@@ -1,0 +1,5 @@
+*.exe
+sqllint
+testdata/
+*.md
+.git/
