@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+STAGED_SQL=$(git diff --cached --name-only --diff-filter=ACM | grep '\.sql$')
+[ -z "$STAGED_SQL" ] && exit 0
+
+if command -v sqllint >/dev/null 2>&1; then
+    LINTER=sqllint
+elif [ -x "./sqllint" ]; then
+    LINTER=./sqllint
+else
+    echo "go-sqllint: sqllint not found, skipping" >&2; exit 0
+fi
+
+echo "$STAGED_SQL" | xargs $LINTER -format text
+EXIT=$?
+
+[ $EXIT -eq 1 ] && { echo "go-sqllint: commit blocked — errors found." >&2; exit 1; }
+[ $EXIT -eq 2 ] && echo "go-sqllint: warnings found (commit allowed)." >&2
+exit 0
