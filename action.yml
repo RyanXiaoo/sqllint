@@ -1,0 +1,19 @@
+name: 'go-sqllint'
+description: 'Lint SQL files for common errors and anti-patterns'
+author: 'ryanxiao'
+inputs:
+  files:
+    description: 'SQL file glob pattern(s)'
+    required: false
+    default: '**/*.sql'
+  format:
+    description: 'Output format: text, json, or sarif'
+    required: false
+    default: 'sarif'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - '-format'
+    - '${{ inputs.format }}'
+    - '${{ inputs.files }}'
