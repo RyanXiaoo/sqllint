@@ -1,6 +1,6 @@
 # Go binaries
-sqllint
-sqllint.exe
+/sqllint
+/sqllint.exe
 *.exe
 *.exe~
 *.dll
@@ -32,3 +32,6 @@ vendor/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+#plans
+plans/
