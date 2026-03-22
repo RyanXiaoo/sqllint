@@ -94,3 +94,12 @@ func (r Result) HasErrors() bool {
 	}
 	return false
 }
+
+func (r Result) HasWarnings() bool {
+	for _, v := range r.Violations {
+		if v.Severity == rules.SeverityWarning {
+			return true
+		}
+	}
+	return false
+}
