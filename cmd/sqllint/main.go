@@ -15,6 +15,8 @@ import (
 	"github.com/ryanxiao/go-sqllint/internal/output"
 )
 
+var version = "dev"
+
 type fileResult struct {
 	result linter.Result
 	err    error
