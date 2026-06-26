@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ryanxiao/go-sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/linter"
 )
 
 // Text writes lint results in a human-readable format like:

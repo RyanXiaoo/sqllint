@@ -3,7 +3,7 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/ryanxiao/go-sqllint/internal/rules"
+	"github.com/ryanxiao/sqllint/internal/rules"
 )
 
 // Table-driven tests are THE Go testing pattern. Instead of writing

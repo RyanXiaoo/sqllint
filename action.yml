@@ -1,4 +1,4 @@
-name: 'go-sqllint'
+name: 'sqllint'
 description: 'Lint SQL files for common errors and anti-patterns'
 author: 'ryanxiao'
 inputs:

@@ -3,9 +3,9 @@ package linter_test
 import (
 	"testing"
 
-	"github.com/ryanxiao/go-sqllint/internal/linter"
-	"github.com/ryanxiao/go-sqllint/internal/rules"
-	"github.com/ryanxiao/go-sqllint/internal/config"
+	"github.com/ryanxiao/sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/rules"
+	"github.com/ryanxiao/sqllint/internal/config"
 )
 
 func TestHasErrors(t *testing.T) {

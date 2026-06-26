@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ryanxiao/go-sqllint/internal/linter"
-	"github.com/ryanxiao/go-sqllint/internal/output"
-	"github.com/ryanxiao/go-sqllint/internal/rules"
+	"github.com/ryanxiao/sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/output"
+	"github.com/ryanxiao/sqllint/internal/rules"
 )
 
 // sarifDoc mirrors the top-level SARIF structure for unmarshalling in tests.

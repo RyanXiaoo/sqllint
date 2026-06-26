@@ -1,4 +1,4 @@
-# go-sqllint
+# sqllint
 
 A fast, extensible SQL linter written in Go.
 
@@ -6,7 +6,7 @@ A fast, extensible SQL linter written in Go.
 
 ```sh
 # Install latest release via go install
-go install github.com/ryanxiao/go-sqllint/cmd/sqllint@latest
+go install github.com/ryanxiao/sqllint/cmd/sqllint@latest
 
 # Or download a pre-built binary from the Releases page
 ```
@@ -81,7 +81,7 @@ rules:
 
 ```yaml
 - name: Lint SQL
-  uses: ryanxiao/go-sqllint/.github/workflows/sqllint.yml@main
+  uses: ryanxiao/sqllint/.github/workflows/sqllint.yml@main
   with:
     path: "migrations/*.sql"
 ```
@@ -89,7 +89,7 @@ rules:
 Or run directly:
 
 ```yaml
-- run: go install github.com/ryanxiao/go-sqllint/cmd/sqllint@latest
+- run: go install github.com/ryanxiao/sqllint/cmd/sqllint@latest
 - run: sqllint --format sarif migrations/*.sql > results.sarif
 - uses: github/codeql-action/upload-sarif@v3
   with:

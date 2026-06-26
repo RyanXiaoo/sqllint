@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/ryanxiao/go-sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/linter"
 )
 
 // jsonViolation is the JSON-friendly representation of a lint violation.

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/pgplex/pgparser/parser"
-	"github.com/ryanxiao/go-sqllint/internal/config"
-	"github.com/ryanxiao/go-sqllint/internal/rules"
+	"github.com/ryanxiao/sqllint/internal/config"
+	"github.com/ryanxiao/sqllint/internal/rules"
 )
 
 type Linter struct {

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ryanxiao/go-sqllint/internal/config"
-	"github.com/ryanxiao/go-sqllint/internal/linter"
-	"github.com/ryanxiao/go-sqllint/internal/output"
+	"github.com/ryanxiao/sqllint/internal/config"
+	"github.com/ryanxiao/sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/output"
 )
 
 var version = "dev"

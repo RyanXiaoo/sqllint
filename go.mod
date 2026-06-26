@@ -1,4 +1,4 @@
-module github.com/ryanxiao/go-sqllint
+module github.com/ryanxiao/sqllint
 
 go 1.22
 

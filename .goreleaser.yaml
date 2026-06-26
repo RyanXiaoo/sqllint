@@ -24,4 +24,4 @@ checksum:
 release:
   github:
     owner: ryanxiao
-    name: go-sqllint
+    name: sqllint

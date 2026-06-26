@@ -5,8 +5,8 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/ryanxiao/go-sqllint/internal/linter"
-	"github.com/ryanxiao/go-sqllint/internal/rules"
+	"github.com/ryanxiao/sqllint/internal/linter"
+	"github.com/ryanxiao/sqllint/internal/rules"
 )
 
 type sarifRoot struct {
@@ -123,9 +123,9 @@ func SARIF(w io.Writer, results []linter.Result) error {
 		Runs: []sarifRun{{
 			Tool: sarifTool{
 				Driver: sarifDriver{
-					Name:           "go-sqllint",
+					Name:           "sqllint",
 					Version:        "0.1.0",
-					InformationURI: "https://github.com/ryanxiao/go-sqllint",
+					InformationURI: "https://github.com/ryanxiao/sqllint",
 					Rules:          sarifRules,
 				},
 			},
