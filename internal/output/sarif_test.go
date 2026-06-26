@@ -13,8 +13,8 @@ import (
 
 // sarifDoc mirrors the top-level SARIF structure for unmarshalling in tests.
 type sarifDoc struct {
-	Version string    `json:"version"`
-	Schema  string    `json:"$schema"`
+	Version string     `json:"version"`
+	Schema  string     `json:"$schema"`
 	Runs    []sarifRun `json:"runs"`
 }
 
@@ -40,9 +40,11 @@ type sarifRule struct {
 }
 
 type sarifResult struct {
-	RuleID    string `json:"ruleId"`
-	Level     string `json:"level"`
-	Message   struct{ Text string `json:"text"` } `json:"message"`
+	RuleID  string `json:"ruleId"`
+	Level   string `json:"level"`
+	Message struct {
+		Text string `json:"text"`
+	} `json:"message"`
 	Locations []struct {
 		PhysicalLocation struct {
 			ArtifactLocation struct {

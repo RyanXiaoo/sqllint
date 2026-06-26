@@ -23,7 +23,7 @@ func (s Severity) String() string {
 type Violation struct {
 	RuleID   string
 	Message  string
-	Line     int      // 1-indexed
+	Line     int // 1-indexed
 	Severity Severity
 }
 

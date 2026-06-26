@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0] - 2026-03-21
+## [0.1.0] - 2026-06-25
 
 ### Added
 - 9 lint rules: select-star, missing-where, keyword-casing, trailing-semicolon,

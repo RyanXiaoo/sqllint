@@ -41,6 +41,8 @@ func main() {
 	}
 	flag.Parse()
 
+	output.Version = version
+
 	if *fix && *format != "text" {
 		fmt.Fprintln(os.Stderr, "Error: --fix and --format are mutually exclusive")
 		os.Exit(1)

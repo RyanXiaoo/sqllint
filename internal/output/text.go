@@ -8,7 +8,8 @@ import (
 )
 
 // Text writes lint results in a human-readable format like:
-//   query.sql:12 [warning] select-star: Avoid SELECT *; explicitly list the columns you need
+//
+//	query.sql:12 [warning] select-star: Avoid SELECT *; explicitly list the columns you need
 func Text(w io.Writer, results []linter.Result) {
 	count := 0
 	for _, r := range results {

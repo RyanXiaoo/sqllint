@@ -3,11 +3,15 @@ package output
 import (
 	"encoding/json"
 	"io"
-	"path/filepath"
+	"strings"
 
 	"github.com/ryanxiao/sqllint/internal/linter"
 	"github.com/ryanxiao/sqllint/internal/rules"
 )
+
+// Version is the tool version reported in SARIF output. It is set from
+// main.version at startup so the SARIF driver matches the built binary.
+var Version = "dev"
 
 type sarifRoot struct {
 	Version string     `json:"version"`
@@ -32,8 +36,8 @@ type sarifDriver struct {
 }
 
 type sarifRule struct {
-	ID               string          `json:"id"`
-	ShortDescription sarifMessage    `json:"shortDescription"`
+	ID               string       `json:"id"`
+	ShortDescription sarifMessage `json:"shortDescription"`
 }
 
 type sarifMessage struct {
@@ -90,7 +94,10 @@ func SARIF(w io.Writer, results []linter.Result) error {
 
 	var sarifResults []sarifResult
 	for _, r := range results {
-		uri := filepath.ToSlash(r.File)
+		// SARIF artifact URIs must use forward slashes on every platform.
+		// filepath.ToSlash only rewrites the host OS separator, so normalize
+		// backslashes explicitly to handle Windows-style paths anywhere.
+		uri := strings.ReplaceAll(r.File, "\\", "/")
 		for _, v := range r.Violations {
 			level := "warning"
 			if v.Severity == rules.SeverityError {
@@ -124,7 +131,7 @@ func SARIF(w io.Writer, results []linter.Result) error {
 			Tool: sarifTool{
 				Driver: sarifDriver{
 					Name:           "sqllint",
-					Version:        "0.1.0",
+					Version:        Version,
 					InformationURI: "https://github.com/ryanxiao/sqllint",
 					Rules:          sarifRules,
 				},

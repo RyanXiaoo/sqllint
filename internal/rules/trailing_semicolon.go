@@ -1,4 +1,5 @@
 package rules
+
 import "strings"
 
 type TrailingSemicolon struct{}
