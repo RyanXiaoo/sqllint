@@ -14,14 +14,12 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}}
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 checksum:
   name_template: checksums.txt
-release:
-  github:
-    owner: ryanxiao
-    name: sqllint
+# release: owner/repo are auto-detected from the GITHUB_REPOSITORY of the
+# Actions run, so they always match the repository the tag was pushed to.
