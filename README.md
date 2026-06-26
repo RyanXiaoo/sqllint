@@ -49,6 +49,32 @@ sqllint migrations/*.sql
 
 Rules marked **error** cause exit code 1; **warning** rules cause exit code 2.
 
+### How rules work
+
+Most rules are **AST-based**: the SQL is parsed into a syntax tree and the rule
+inspects nodes (e.g. `implicit-join` flags a `FROM` clause with more than one
+top-level item; `leading-wildcard` reads the actual `LIKE` pattern constant).
+This avoids the false positives of naive text matching — commas inside function
+calls or `IN (...)` lists, `%` inside unrelated string literals, and multi-line
+clauses are all handled correctly.
+
+A small number of rules are **lexical** (`keyword-casing`, `trailing-semicolon`)
+and operate on the raw source text by design: keyword casing and a trailing `;`
+are properties the parser normalizes away, so they can only be checked against
+the text itself.
+
+The bundled parser does not emit source offsets, so AST rules resolve line
+numbers with a comment- and string-aware text search (see
+`internal/rules/ast_helpers.go`) — matches inside comments or string literals
+are ignored so violations point at the real offending line.
+
+### Limitations
+
+The AST-based rules parse **PostgreSQL** syntax (via
+[`pgplex/pgparser`](https://github.com/pgplex/pgparser)). Dialect-specific
+syntax from other databases may not parse; when parsing fails, sqllint falls
+back to the lexical rules only and prints a warning.
+
 ## Auto-fix (`--fix`)
 
 `--fix` rewrites files in place (atomic write) for mechanically fixable violations.

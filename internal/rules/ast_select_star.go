@@ -41,7 +41,7 @@ func (r ASTSelectStar) checkSelect(sel *nodes.SelectStmt, sql string, lines []st
 
 		for _, field := range ref.Fields.Items {
 			if _, ok := field.(*nodes.A_Star); ok {
-				line := findKeywordLine(sql, "SELECT", occurrence)
+				line := findKeywordLineMasked(sql, "SELECT", occurrence)
 				*violations = append(*violations, Violation{
 					RuleID:   r.ID(),
 					Message:  "Avoid SELECT *; explicitly list the columns you need",

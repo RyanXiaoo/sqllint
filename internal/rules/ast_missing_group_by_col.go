@@ -24,18 +24,47 @@ var aggregateFuncs = map[string]bool{
 func (r ASTMissingGroupByCol) CheckAST(stmts []nodes.Node, sql string, lines []string) []Violation {
 	var violations []Violation
 
+	// The parser does not populate node source locations. A column name can
+	// recur across statements, so anchoring on the column identifier is
+	// unreliable; instead we count SELECTs in document order (recursing into
+	// subqueries) and report the offending statement's SELECT line.
+	selectSeen := 0
 	for _, stmt := range stmts {
-		node := unwrapRawStmt(stmt)
-		if sel, ok := node.(*nodes.SelectStmt); ok {
-			r.checkSelect(sel, sql, &violations)
-		}
+		r.walkStmt(unwrapRawStmt(stmt), sql, &selectSeen, &violations)
 	}
 
 	return violations
 }
 
-func (r ASTMissingGroupByCol) checkSelect(sel *nodes.SelectStmt, sql string, violations *[]Violation) {
-	if sel == nil || sel.GroupClause == nil || sel.GroupClause.Len() == 0 {
+func (r ASTMissingGroupByCol) walkStmt(node nodes.Node, sql string, selectSeen *int, violations *[]Violation) {
+	if sel, ok := node.(*nodes.SelectStmt); ok {
+		r.checkSelect(sel, sql, selectSeen, violations)
+	}
+}
+
+func (r ASTMissingGroupByCol) checkSelect(sel *nodes.SelectStmt, sql string, selectSeen *int, violations *[]Violation) {
+	if sel == nil {
+		return
+	}
+
+	*selectSeen++
+	occurrence := *selectSeen
+	line := findKeywordLineMasked(sql, "SELECT", occurrence)
+
+	r.checkTargets(sel, line, violations)
+
+	// Descend into subqueries so nested SELECTs are checked and counted in
+	// document order.
+	if sel.FromClause != nil {
+		for _, from := range sel.FromClause.Items {
+			r.walkFromNode(from, sql, selectSeen, violations)
+		}
+	}
+	r.walkExpr(sel.WhereClause, sql, selectSeen, violations)
+}
+
+func (r ASTMissingGroupByCol) checkTargets(sel *nodes.SelectStmt, line int, violations *[]Violation) {
+	if sel.GroupClause == nil || sel.GroupClause.Len() == 0 || sel.TargetList == nil {
 		return
 	}
 
@@ -45,10 +74,6 @@ func (r ASTMissingGroupByCol) checkSelect(sel *nodes.SelectStmt, sql string, vio
 		if col != "" {
 			groupCols[col] = true
 		}
-	}
-
-	if sel.TargetList == nil {
-		return
 	}
 
 	for _, item := range sel.TargetList.Items {
@@ -66,10 +91,40 @@ func (r ASTMissingGroupByCol) checkSelect(sel *nodes.SelectStmt, sql string, vio
 			*violations = append(*violations, Violation{
 				RuleID:   r.ID(),
 				Message:  "Column \"" + col + "\" must appear in GROUP BY or be used in an aggregate function",
-				Line:     locationToLine(sql, rt.Location),
+				Line:     line,
 				Severity: SeverityError,
 			})
 		}
+	}
+}
+
+func (r ASTMissingGroupByCol) walkFromNode(node nodes.Node, sql string, selectSeen *int, violations *[]Violation) {
+	switch n := node.(type) {
+	case *nodes.RangeSubselect:
+		if sel, ok := n.Subquery.(*nodes.SelectStmt); ok {
+			r.checkSelect(sel, sql, selectSeen, violations)
+		}
+	case *nodes.JoinExpr:
+		r.walkFromNode(n.Larg, sql, selectSeen, violations)
+		r.walkFromNode(n.Rarg, sql, selectSeen, violations)
+	}
+}
+
+func (r ASTMissingGroupByCol) walkExpr(node nodes.Node, sql string, selectSeen *int, violations *[]Violation) {
+	switch n := node.(type) {
+	case *nodes.SubLink:
+		if sel, ok := n.Subselect.(*nodes.SelectStmt); ok {
+			r.checkSelect(sel, sql, selectSeen, violations)
+		}
+	case *nodes.BoolExpr:
+		if n.Args != nil {
+			for _, arg := range n.Args.Items {
+				r.walkExpr(arg, sql, selectSeen, violations)
+			}
+		}
+	case *nodes.A_Expr:
+		r.walkExpr(n.Lexpr, sql, selectSeen, violations)
+		r.walkExpr(n.Rexpr, sql, selectSeen, violations)
 	}
 }
 

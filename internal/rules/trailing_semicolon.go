@@ -2,6 +2,10 @@ package rules
 
 import "strings"
 
+// TrailingSemicolon flags a final statement without a terminating ';'.
+// This is intentionally a string (lexical) rule rather than an AST rule: the
+// parser accepts SQL with or without a trailing ';' and does not preserve it,
+// so whether the source text ends in ';' can only be checked against the text.
 type TrailingSemicolon struct{}
 
 func (r TrailingSemicolon) ID() string {

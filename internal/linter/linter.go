@@ -22,8 +22,6 @@ func New(cfg config.Config) *Linter {
 		rules: []rules.Rule{
 			rules.KeywordCasing{},
 			rules.TrailingSemicolon{},
-			rules.LeadingWildcard{},
-			rules.ImplicitJoin{},
 		},
 		astRules: []rules.ASTRule{
 			rules.ASTSelectStar{},
@@ -31,6 +29,8 @@ func New(cfg config.Config) *Linter {
 			rules.ASTNotInNullable{},
 			rules.ASTUnusedAlias{},
 			rules.ASTMissingGroupByCol{},
+			rules.ASTImplicitJoin{},
+			rules.ASTLeadingWildcard{},
 		},
 	}
 }

@@ -23,7 +23,7 @@ func (r ASTMissingWhere) CheckAST(stmts []nodes.Node, sql string, lines []string
 				violations = append(violations, Violation{
 					RuleID:   r.ID(),
 					Message:  "DELETE without WHERE clause affects all rows",
-					Line:     findKeywordLine(sql, "DELETE", deleteCount),
+					Line:     findKeywordLineMasked(sql, "DELETE", deleteCount),
 					Severity: SeverityError,
 				})
 			}
@@ -33,7 +33,7 @@ func (r ASTMissingWhere) CheckAST(stmts []nodes.Node, sql string, lines []string
 				violations = append(violations, Violation{
 					RuleID:   r.ID(),
 					Message:  "UPDATE without WHERE clause affects all rows",
-					Line:     findKeywordLine(sql, "UPDATE", updateCount),
+					Line:     findKeywordLineMasked(sql, "UPDATE", updateCount),
 					Severity: SeverityError,
 				})
 			}

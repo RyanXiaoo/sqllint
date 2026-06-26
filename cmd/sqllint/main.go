@@ -33,6 +33,7 @@ func writeAtomic(path, content string) error {
 func main() {
 	format := flag.String("format", "text", "Output format: text, json, or sarif")
 	fix := flag.Bool("fix", false, "Auto-fix violations where possible")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: sqllint [flags] [file ...]\n\n")
 		fmt.Fprintf(os.Stderr, "If no files are given, reads from stdin.\n\n")
@@ -42,6 +43,11 @@ func main() {
 	flag.Parse()
 
 	output.Version = version
+
+	if *showVersion {
+		fmt.Printf("sqllint %s\n", version)
+		return
+	}
 
 	if *fix && *format != "text" {
 		fmt.Fprintln(os.Stderr, "Error: --fix and --format are mutually exclusive")

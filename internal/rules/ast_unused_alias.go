@@ -17,29 +17,46 @@ func (r ASTUnusedAlias) ID() string {
 func (r ASTUnusedAlias) CheckAST(stmts []nodes.Node, sql string, lines []string) []Violation {
 	var violations []Violation
 
+	// The parser does not populate node source locations. An alias name can
+	// recur across statements, so anchoring on the alias identifier is
+	// unreliable; instead we count SELECTs in document order and report the
+	// offending statement's SELECT line.
+	selectSeen := 0
 	for _, stmt := range stmts {
-		node := unwrapRawStmt(stmt)
-		sel, ok := node.(*nodes.SelectStmt)
-		if !ok {
-			continue
+		if sel, ok := unwrapRawStmt(stmt).(*nodes.SelectStmt); ok {
+			r.checkSelect(sel, sql, &selectSeen, &violations)
 		}
-		r.checkSelect(sel, sql, &violations)
 	}
 
 	return violations
 }
 
-type aliasInfo struct {
-	name     string
-	location nodes.ParseLoc
-}
-
-func (r ASTUnusedAlias) checkSelect(sel *nodes.SelectStmt, sql string, violations *[]Violation) {
-	if sel == nil || sel.FromClause == nil {
+func (r ASTUnusedAlias) checkSelect(sel *nodes.SelectStmt, sql string, selectSeen *int, violations *[]Violation) {
+	if sel == nil {
 		return
 	}
 
-	var aliases []aliasInfo
+	*selectSeen++
+	line := findKeywordLineMasked(sql, "SELECT", *selectSeen)
+
+	r.checkAliases(sel, line, violations)
+
+	// Always recurse into subqueries so nested SELECTs are checked and counted
+	// in document order, keeping the SELECT line numbering aligned.
+	if sel.FromClause != nil {
+		for _, from := range sel.FromClause.Items {
+			r.walkFromNode(from, sql, selectSeen, violations)
+		}
+	}
+	r.walkExpr(sel.WhereClause, sql, selectSeen, violations)
+}
+
+func (r ASTUnusedAlias) checkAliases(sel *nodes.SelectStmt, line int, violations *[]Violation) {
+	if sel.FromClause == nil {
+		return
+	}
+
+	var aliases []string
 	for _, from := range sel.FromClause.Items {
 		r.collectAliases(from, &aliases)
 	}
@@ -68,18 +85,48 @@ func (r ASTUnusedAlias) checkSelect(sel *nodes.SelectStmt, sql string, violation
 	}
 
 	for _, alias := range aliases {
-		if !refs[strings.ToLower(alias.name)] {
+		if !refs[strings.ToLower(alias)] {
 			*violations = append(*violations, Violation{
 				RuleID:   r.ID(),
-				Message:  "Table alias \"" + alias.name + "\" is defined but never referenced",
-				Line:     locationToLine(sql, alias.location),
+				Message:  "Table alias \"" + alias + "\" is defined but never referenced",
+				Line:     line,
 				Severity: SeverityWarning,
 			})
 		}
 	}
 }
 
-func (r ASTUnusedAlias) collectAliases(node nodes.Node, aliases *[]aliasInfo) {
+func (r ASTUnusedAlias) walkFromNode(node nodes.Node, sql string, selectSeen *int, violations *[]Violation) {
+	switch n := node.(type) {
+	case *nodes.RangeSubselect:
+		if sel, ok := n.Subquery.(*nodes.SelectStmt); ok {
+			r.checkSelect(sel, sql, selectSeen, violations)
+		}
+	case *nodes.JoinExpr:
+		r.walkFromNode(n.Larg, sql, selectSeen, violations)
+		r.walkFromNode(n.Rarg, sql, selectSeen, violations)
+	}
+}
+
+func (r ASTUnusedAlias) walkExpr(node nodes.Node, sql string, selectSeen *int, violations *[]Violation) {
+	switch n := node.(type) {
+	case *nodes.SubLink:
+		if sel, ok := n.Subselect.(*nodes.SelectStmt); ok {
+			r.checkSelect(sel, sql, selectSeen, violations)
+		}
+	case *nodes.BoolExpr:
+		if n.Args != nil {
+			for _, arg := range n.Args.Items {
+				r.walkExpr(arg, sql, selectSeen, violations)
+			}
+		}
+	case *nodes.A_Expr:
+		r.walkExpr(n.Lexpr, sql, selectSeen, violations)
+		r.walkExpr(n.Rexpr, sql, selectSeen, violations)
+	}
+}
+
+func (r ASTUnusedAlias) collectAliases(node nodes.Node, aliases *[]string) {
 	if node == nil {
 		return
 	}
@@ -87,19 +134,13 @@ func (r ASTUnusedAlias) collectAliases(node nodes.Node, aliases *[]aliasInfo) {
 	switch n := node.(type) {
 	case *nodes.RangeVar:
 		if n.Alias != nil && n.Alias.Aliasname != "" {
-			*aliases = append(*aliases, aliasInfo{
-				name:     n.Alias.Aliasname,
-				location: n.Location,
-			})
+			*aliases = append(*aliases, n.Alias.Aliasname)
 		}
 	case *nodes.JoinExpr:
 		r.collectAliases(n.Larg, aliases)
 		r.collectAliases(n.Rarg, aliases)
 		if n.Alias != nil && n.Alias.Aliasname != "" {
-			*aliases = append(*aliases, aliasInfo{
-				name:     n.Alias.Aliasname,
-				location: nodes.ParseLoc(n.Rtindex),
-			})
+			*aliases = append(*aliases, n.Alias.Aliasname)
 		}
 	}
 }

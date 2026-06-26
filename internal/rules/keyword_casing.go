@@ -16,6 +16,9 @@ var sqlKeywords = []string{
 }
 
 // KeywordCasing flags SQL keywords that aren't consistently uppercased or lowercased.
+// This is intentionally a string (lexical) rule rather than an AST rule: the
+// parser normalizes keywords and discards their original casing, so casing can
+// only be inspected in the raw source text.
 type KeywordCasing struct{}
 
 func (r KeywordCasing) ID() string {
